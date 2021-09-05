@@ -68,6 +68,12 @@ public:
 		return Vector3(random_double(min, max), random_double(min, max), random_double(min, max));
 	}
 
+	//Returns true whenever one of the vector dimesnsons close to 0
+	bool near_zero() const {
+		const auto s = 1e-8;
+		return (fabs(e[0]) < s) && (fabs(e[1]) < s) && (fabs(e[2]) < s);
+	}
+
 
 public:
 	double e[3];
@@ -81,6 +87,7 @@ Vector3::~Vector3()
 {
 	//delete[] e;
 }
+
 
 inline std::ostream& operator<<(std::ostream& out, const Vector3& v) {
 	return out << v.e[0] << ' ' << v.e[1] << ' ' << v.e[2];
@@ -139,7 +146,9 @@ inline Vector3 random_unit_vector() {
 	return normalize(random_in_unit_sphere());
 }
 
-
+inline Vector3 reflect(const Vector3& v, const Vector3& n) {
+	return v - 2 * dot(v, n) * n;
+}
 
 
 #endif
