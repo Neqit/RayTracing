@@ -23,9 +23,7 @@ const double infinity = std::numeric_limits<double>::infinity();
 //const double pi = 3.1415926535897932385;
 
 // Utility Functions
-inline double degrees_to_radians(double degrees) {
-    return degrees * M_PI / 180.0;
-}
+
 
 
 
@@ -63,9 +61,15 @@ int main() {
     const int max_depth = 50;
 
     //Camera
-    camera cam;
+    point3 lookfrom(3, 3, 2);
+    point3 lookat(0, 0, -1);
+    Vector3 view_up(0, 1, 0);
+    auto dist_to_focus = (lookfrom - lookat).length();
+    auto aperture = 2.0;
+    camera cam(lookfrom, lookat, view_up, 40, aspect_ratio, aperture, dist_to_focus);
 
     //World
+    auto R = cos(M_PI / 4);
     hittable_list world;
 
     auto material_ground = std::make_shared<lambertian>(color(0.8, 0.8, 0.0));
@@ -103,7 +107,7 @@ int main() {
         }
     }
 
-    stbi_write_png("fuzz.png", image_width, image_height, chanel_num, pixels, image_width * chanel_num);
+    stbi_write_png("camera_focus.png", image_width, image_height, chanel_num, pixels, image_width * chanel_num);
     delete[] pixels;
 
 }
