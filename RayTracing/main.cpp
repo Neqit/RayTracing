@@ -11,23 +11,33 @@
 //quadratic equation to check if ray hits the sphere  
 // basicly returns true if disciminant > 0
 // (0 roots = 0 intersextions, 1 root = 1 intersection, 2 roots = 2 intersections)
-bool hit_sphere(const point3& center, double radius, const ray& r) {
+double hit_sphere(const point3& center, double radius, const ray& r) {
     Vector3 oc = r.origin() - center; //vector from center to point
     auto a = dot(r.direction(), r.direction());
     auto b = 2.0 * dot(oc, r.direction());
     auto c = dot(oc, oc) - radius * radius;
     auto discriminant = b * b - 4 * a * c;
-    return (discriminant > 0);
+    if (discriminant < 0) {
+        return - 1.0;
+    }
+    else {
+        return (-b - std::sqrt(discriminant) / (2.0 * a));
+    }
 }
 
-//blue gradient image
 color ray_color(const ray& r) {
-    //draw a red circle
-    if (hit_sphere(point3(0, 0, -1), 0.5, r))
-        return color(0, 1, 0);
+    point3 sphere_orig = point3(0, 0, -1);
+    auto t = hit_sphere(sphere_orig, 0.5, r);
 
+    //A sphere colored according to its normal vectors
+    if (t > 0.0) {
+        Vector3 normal_map_vector = normalize(r.at(t) - sphere_orig);
+        return 0.5 * color(normal_map_vector.x() + 1, normal_map_vector.y() + 1, normal_map_vector.z() + 1);
+    }
+
+    //Background - blue gradient
     Vector3 unit_direction = normalize(r.direction());
-    auto t = 0.5 * (unit_direction.y() + 1.0);
+    t = 0.5 * (unit_direction.y() + 1.0);
     return (1.0 - t) * color(1.0, 1.0, 1.0) + t * (color(0.5, 0.7, 1.0)); //blend value
 }
 
@@ -51,8 +61,6 @@ int main() {
 
     // Render
 
-    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
-
     uint8_t* pixels = new uint8_t[image_width * image_height * chanel_num];
 
     int index = 0;
@@ -69,19 +77,17 @@ int main() {
             int ib = static_cast<int>(255.999 * b);*/
 
             //color pixel_color(double(i) / (image_width - 1), double(j) / (image_height - 1), 0.25);
-            //write_color(std::cout, pixel_color);
+
 
             auto u = double(i) / (image_width - 1);
             auto v = double(j) / (image_height - 1);
             ray r(origin, lower_left_corner + u * horizontal + v * vertical - origin);
             color pixel_color = ray_color(r);
-
+            //write_color(std::cout, pixel_color);
 
             pixels[index++] = static_cast<int>(255.99 *pixel_color.x());
             pixels[index++] = static_cast<int>(255.99 * pixel_color.y());
             pixels[index++] = static_cast<int>(255.99 * pixel_color.z());
-
-            //std::cout << ir << ' ' << ig << ' ' << ib << '\n';
         }
     }
 
