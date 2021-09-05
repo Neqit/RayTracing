@@ -56,8 +56,8 @@ color ray_color(const ray& r, const hittable& world, int depth) {
     }
 
     //check for hitting an object
-    if (world.hit(r, 0, infinity, rec)) {
-        point3 target = rec.p + rec.normal + random_in_unit_sphere();
+    if (world.hit(r, 0.001, infinity, rec)) {
+        point3 target = rec.p + rec.normal + random_unit_vector();
         return 0.5 * ray_color(ray(rec.p, target - rec.p), world, depth - 1);
     }
 
@@ -71,7 +71,7 @@ int main() {
 
     // Image
     const auto aspect_ratio = 16.0 / 9.0;
-    const int image_width = 400;
+    const int image_width = 1280;
     const int image_height = static_cast<int>(image_width / aspect_ratio);
     const int chanel_num = 3;
     const int samples_per_pixel = 100;
@@ -136,7 +136,7 @@ int main() {
         }
     }
 
-    stbi_write_png("diffuse.png", image_width, image_height, chanel_num, pixels, image_width * chanel_num);
+    stbi_write_png("gamma_correcton.png", image_width, image_height, chanel_num, pixels, image_width * chanel_num);
     delete[] pixels;
 
 }
