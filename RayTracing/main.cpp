@@ -10,7 +10,7 @@
 #define _USE_MATH_DEFINES
 #include <limits>
 #include <memory>
-#include <random>
+
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_MSC_SECURE_CRT
@@ -26,11 +26,7 @@ inline double degrees_to_radians(double degrees) {
     return degrees * M_PI / 180.0;
 }
 
-inline double random_double() {
-    static std::uniform_real_distribution<double> distribution(0.0, 1.0);
-    static std::mt19937 generator;
-    return distribution(generator);
-}
+
 
 
 //quadratic equation to check if ray hits the sphere  
@@ -51,11 +47,18 @@ inline double random_double() {
     }
 }*/
 
-color ray_color(const ray& r, const hittable& world) {
+color ray_color(const ray& r, const hittable& world, int depth) {
     hit_record rec;
+
+    //Maximum recursion depth. It will stop when there is nothing to hit
+    if (depth <= 0) {
+        return color(0, 0, 0);
+    }
+
     //check for hitting an object
     if (world.hit(r, 0, infinity, rec)) {
-        return 0.5 * (rec.normal + color(1, 1, 1));
+        point3 target = rec.p + rec.normal + random_in_unit_sphere();
+        return 0.5 * ray_color(ray(rec.p, target - rec.p), world, depth - 1);
     }
 
     //Otherwise returns blue gradient (sky)
@@ -72,6 +75,7 @@ int main() {
     const int image_height = static_cast<int>(image_width / aspect_ratio);
     const int chanel_num = 3;
     const int samples_per_pixel = 100;
+    const int max_depth = 50;
 
     //Camera
     /*auto viewport_height = 2.0;
@@ -120,7 +124,7 @@ int main() {
                 auto u = (i + random_double()) / (image_width - 1);
                 auto v = (j + random_double()) / (image_height - 1);
                 ray r = cam.get_ray(u, v);
-                pixel_color += ray_color(r, world);
+                pixel_color += ray_color(r, world, max_depth);
             }
 
             color pixels_color = write_color(std::cout, pixel_color, samples_per_pixel);
@@ -132,7 +136,7 @@ int main() {
         }
     }
 
-    stbi_write_png("antialiasing.png", image_width, image_height, chanel_num, pixels, image_width * chanel_num);
+    stbi_write_png("diffuse.png", image_width, image_height, chanel_num, pixels, image_width * chanel_num);
     delete[] pixels;
 
 }

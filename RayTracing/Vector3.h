@@ -3,6 +3,19 @@
 
 #include <cmath>
 #include <iostream>
+#include <random>
+
+inline double random_double() {
+	static std::uniform_real_distribution<double> distribution(0.0, 1.0);
+	static std::mt19937 generator;
+	return distribution(generator);
+}
+
+inline double random_double(double min, double max) {
+	static std::uniform_real_distribution<double> distribution(min, max);
+	static std::mt19937 generator;
+	return distribution(generator);
+}
 
 
 class Vector3
@@ -45,6 +58,14 @@ public:
 
 	double length() const {
 		return std::sqrt(length_squared());
+	}
+
+	inline static Vector3 random() {
+		return Vector3(random_double(), random_double(), random_double());
+	}
+
+	inline static Vector3 random(double min, double max) {
+		return Vector3(random_double(min, max), random_double(min, max), random_double(min, max));
 	}
 
 
@@ -103,6 +124,15 @@ inline Vector3 cross(const Vector3& u, const Vector3& v) {
 
 inline Vector3 normalize(Vector3 v) {
 	return v / v.length();
+}
+
+
+inline Vector3 random_in_unit_sphere() {
+	while (true) {
+		auto p = Vector3::random(-1, 1);
+		if (p.length_squared() >= 1) continue;
+		return p;
+	}
 }
 
 
