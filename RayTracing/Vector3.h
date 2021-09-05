@@ -24,6 +24,8 @@ public:
 		e[0] += vec.e[0];
 		e[1] += vec.e[1];
 		e[2] += vec.e[2];
+
+		return *this;
 	}
 
 	Vector3& operator*=(const double mult) {

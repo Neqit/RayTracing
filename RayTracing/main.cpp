@@ -4,11 +4,13 @@
 #include "ray.h"
 #include "hittable_list.h"
 #include "sphere.h"
+#include "camera.h"
 
 #include <cmath>
 #define _USE_MATH_DEFINES
 #include <limits>
 #include <memory>
+#include <random>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_MSC_SECURE_CRT
@@ -23,6 +25,13 @@ const double infinity = std::numeric_limits<double>::infinity();
 inline double degrees_to_radians(double degrees) {
     return degrees * M_PI / 180.0;
 }
+
+inline double random_double() {
+    static std::uniform_real_distribution<double> distribution(0.0, 1.0);
+    static std::mt19937 generator;
+    return distribution(generator);
+}
+
 
 //quadratic equation to check if ray hits the sphere  
 // basicly returns true if disciminant > 0
@@ -62,16 +71,18 @@ int main() {
     const int image_width = 400;
     const int image_height = static_cast<int>(image_width / aspect_ratio);
     const int chanel_num = 3;
+    const int samples_per_pixel = 100;
 
     //Camera
-    auto viewport_height = 2.0;
+    /*auto viewport_height = 2.0;
     auto viewport_width = aspect_ratio * viewport_height;
     auto focal_length = 1.0;
 
     auto origin = point3(0, 0, 0);
     auto horizontal = Vector3(viewport_width, 0, 0);
     auto vertical = Vector3(0, viewport_height, 0);
-    auto lower_left_corner = origin - horizontal / 2 - vertical / 2 - Vector3(0, 0, focal_length);
+    auto lower_left_corner = origin - horizontal / 2 - vertical / 2 - Vector3(0, 0, focal_length);*/
+    camera cam;
 
     //World
     hittable_list world;
@@ -98,19 +109,30 @@ int main() {
             //color pixel_color(double(i) / (image_width - 1), double(j) / (image_height - 1), 0.25);
 
 
-            auto u = double(i) / (image_width - 1);
+            /*auto u = double(i) / (image_width - 1);
             auto v = double(j) / (image_height - 1);
             ray r(origin, lower_left_corner + u * horizontal + v * vertical - origin);
-            color pixel_color = ray_color(r, world);
+            color pixel_color = ray_color(r, world);*/
             //write_color(std::cout, pixel_color);
 
-            pixels[index++] = static_cast<int>(255.99 *pixel_color.x());
-            pixels[index++] = static_cast<int>(255.99 * pixel_color.y());
-            pixels[index++] = static_cast<int>(255.99 * pixel_color.z());
+            color pixel_color(0, 0, 0);
+            for (int s = 0; s < samples_per_pixel; ++s) {
+                auto u = (i + random_double()) / (image_width - 1);
+                auto v = (j + random_double()) / (image_height - 1);
+                ray r = cam.get_ray(u, v);
+                pixel_color += ray_color(r, world);
+            }
+
+            color pixels_color = write_color(std::cout, pixel_color, samples_per_pixel);
+
+
+            pixels[index++] = static_cast<int>(pixels_color.x());
+            pixels[index++] = static_cast<int>(pixels_color.y());
+            pixels[index++] = static_cast<int>(pixels_color.z());
         }
     }
 
-    stbi_write_png("stbpng.png", image_width, image_height, chanel_num, pixels, image_width * chanel_num);
+    stbi_write_png("antialiasing.png", image_width, image_height, chanel_num, pixels, image_width * chanel_num);
     delete[] pixels;
 
 }

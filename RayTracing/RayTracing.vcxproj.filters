@@ -41,5 +41,8 @@
     <ClInclude Include="hittable_list.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="camera.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
