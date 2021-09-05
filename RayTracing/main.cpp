@@ -2,43 +2,57 @@
 #include "Vector3.h"
 #include "color.h"
 #include "ray.h"
+#include "hittable_list.h"
+#include "sphere.h"
+
+#include <cmath>
+#define _USE_MATH_DEFINES
+#include <limits>
+#include <memory>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_MSC_SECURE_CRT
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
+// Constants
+const double infinity = std::numeric_limits<double>::infinity();
+//const double pi = 3.1415926535897932385;
+
+// Utility Functions
+inline double degrees_to_radians(double degrees) {
+    return degrees * M_PI / 180.0;
+}
+
 //quadratic equation to check if ray hits the sphere  
 // basicly returns true if disciminant > 0
 // (0 roots = 0 intersextions, 1 root = 1 intersection, 2 roots = 2 intersections)
-double hit_sphere(const point3& center, double radius, const ray& r) {
+
+/*double hit_sphere(const point3& center, double radius, const ray& r) {
     Vector3 oc = r.origin() - center; //vector from center to point
-    auto a = dot(r.direction(), r.direction());
-    auto b = 2.0 * dot(oc, r.direction());
-    auto c = dot(oc, oc) - radius * radius;
-    auto discriminant = b * b - 4 * a * c;
+    auto a = r.direction().length_squared();
+    auto half_b = dot(oc, r.direction());
+    auto c = oc.length_squared() - radius * radius;
+    auto discriminant = half_b * half_b - a * c;
     if (discriminant < 0) {
         return - 1.0;
     }
     else {
-        return (-b - std::sqrt(discriminant) / (2.0 * a));
+        return (-half_b - std::sqrt(discriminant)) / a;
     }
-}
+}*/
 
-color ray_color(const ray& r) {
-    point3 sphere_orig = point3(0, 0, -1);
-    auto t = hit_sphere(sphere_orig, 0.5, r);
-
-    //A sphere colored according to its normal vectors
-    if (t > 0.0) {
-        Vector3 normal_map_vector = normalize(r.at(t) - sphere_orig);
-        return 0.5 * color(normal_map_vector.x() + 1, normal_map_vector.y() + 1, normal_map_vector.z() + 1);
+color ray_color(const ray& r, const hittable& world) {
+    hit_record rec;
+    //check for hitting an object
+    if (world.hit(r, 0, infinity, rec)) {
+        return 0.5 * (rec.normal + color(1, 1, 1));
     }
 
-    //Background - blue gradient
+    //Otherwise returns blue gradient (sky)
     Vector3 unit_direction = normalize(r.direction());
-    t = 0.5 * (unit_direction.y() + 1.0);
-    return (1.0 - t) * color(1.0, 1.0, 1.0) + t * (color(0.5, 0.7, 1.0)); //blend value
+    auto t = 0.5 * (unit_direction.y() + 1.0);
+    return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
 }
 
 int main() {
@@ -58,6 +72,11 @@ int main() {
     auto horizontal = Vector3(viewport_width, 0, 0);
     auto vertical = Vector3(0, viewport_height, 0);
     auto lower_left_corner = origin - horizontal / 2 - vertical / 2 - Vector3(0, 0, focal_length);
+
+    //World
+    hittable_list world;
+    world.add(std::make_shared<sphere>(point3(0, 0, -1), 0.5)); //sphere in the center
+    world.add(std::make_shared<sphere>(point3(0, -100.5, -1), 100)); //ground;
 
     // Render
 
@@ -82,7 +101,7 @@ int main() {
             auto u = double(i) / (image_width - 1);
             auto v = double(j) / (image_height - 1);
             ray r(origin, lower_left_corner + u * horizontal + v * vertical - origin);
-            color pixel_color = ray_color(r);
+            color pixel_color = ray_color(r, world);
             //write_color(std::cout, pixel_color);
 
             pixels[index++] = static_cast<int>(255.99 *pixel_color.x());
