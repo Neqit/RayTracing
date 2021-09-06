@@ -8,14 +8,17 @@ class sphere : public hittable
 {
 public:
 	__device__ sphere() {};
-	__device__ sphere(point3 cen, float r) : center(cen), radius(r) {};
+	__device__ sphere(point3 cen, float r, material *m) : center(cen), radius(r), mat_ptr(m) {};
 
-	__device__ virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const override;
+	__device__ virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const;
 
 public:
+    material* mat_ptr;
+
+private:
 	point3 center;
-	double radius;
-	//std::shared_ptr<material> mat_ptr;
+	float radius;
+	
 
 private:
 	/*static void get_sphere_uv(const point3& p, double& u, double& v) {
@@ -50,6 +53,7 @@ __device__ bool sphere::hit(const ray& r, float t_min, float t_max, hit_record& 
             rec.t = temp;
             rec.p = r.at(rec.t);
             rec.normal = (rec.p - center) / radius;
+            rec.mat_ptr = mat_ptr;
             return true;
         }
         temp = (-b + sqrt(discriminant)) / a;
@@ -57,6 +61,7 @@ __device__ bool sphere::hit(const ray& r, float t_min, float t_max, hit_record& 
             rec.t = temp;
             rec.p = r.at(rec.t);
             rec.normal = (rec.p - center) / radius;
+            rec.mat_ptr = mat_ptr;
             return true;
         }
     }

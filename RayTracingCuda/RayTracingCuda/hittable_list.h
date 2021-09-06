@@ -13,7 +13,7 @@ public:
 
 	__device__ virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const override;
 
-public:
+private:
 	int list_size;
 	hittable **list;
 

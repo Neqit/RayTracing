@@ -4,63 +4,70 @@
 #include "ray.h"
 #include "Vector3.h"
 #include "texture.h"
+#include <curand_kernel.h>
+#include "hittable.h"
 
 struct hit_record;
+
+#define RANDVEC3 Vector3(curand_uniform(local_rand_state),curand_uniform(local_rand_state),curand_uniform(local_rand_state))
+
+__device__ Vector3 random_in_unit_sphere(curandState* local_rand_state) {
+    Vector3 p;
+    do {
+        p = 2.0f * RANDVEC3 - Vector3(1, 1, 1);
+    } while (p.length_squared() >= 1.0f);
+    return p;
+}
+
+__device__ Vector3 reflect(const Vector3& v, const Vector3& n) {
+    return v - 2.0f * dot(v, n) * n;
+}
+
 
 class material
 {
 public:
 
-    virtual color emitted(double u, double v, const point3& p) const {
+    /*virtual color emitted(double u, double v, const point3& p) const {
         return color(0, 0, 0);
-    }
+    }*/
 
-	virtual bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered) const = 0;
+    __device__ virtual bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered, curandState* local_rand_state) const = 0;
 
 };
 
 class lambertian : public material {
 public:
-    lambertian(const color& a) : albedo(std::make_shared<solid_color>(a)) {}
-    lambertian(std::shared_ptr<texture> a) : albedo(a) {}
-
-    virtual bool scatter(
-        const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered) const override {
-        auto scatter_direction = rec.normal + random_unit_vector();
-
-        //Zero scatter dir
-		if (scatter_direction.near_zero())
-			scatter_direction = rec.normal;
-
-        scattered = ray(rec.p, scatter_direction);
-        attenuation = albedo->value(rec.u,rec.v,rec.p);
+    __device__ lambertian(const Vector3& a) : albedo(a) {}
+    __device__ virtual bool scatter(const ray& r_in, const hit_record& rec, Vector3& attenuation, ray& scattered, curandState* local_rand_state) const {
+        Vector3 target = rec.p + rec.normal + random_in_unit_sphere(local_rand_state);
+        scattered = ray(rec.p, target - rec.p);
+        attenuation = albedo;
         return true;
     }
 
-public:
-    std::shared_ptr<texture> albedo;
+private:
+    Vector3 albedo;
 };
 
 
 class metal : public material {
 public:
-    metal(const color& a, double f) : albedo(a), fuzz(f < 1 ? f : 1) {}
-
-    virtual bool scatter(
-        const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered) const override {
+    __device__ metal(const Vector3& a, float f) : albedo(a) { if (f < 1) fuzz = f; else fuzz = 1; }
+    __device__ virtual bool scatter(const ray& r_in, const hit_record& rec, Vector3& attenuation, ray& scattered, curandState* local_rand_state) const {
         Vector3 reflected = reflect(normalize(r_in.direction()), rec.normal);
-        scattered = ray(rec.p, reflected + fuzz * random_in_unit_sphere());
+        scattered = ray(rec.p, reflected + fuzz * random_in_unit_sphere(local_rand_state));
         attenuation = albedo;
-        return (dot(scattered.direction(), rec.normal) > 0);
+        return (dot(scattered.direction(), rec.normal) > 0.0f);
     }
 
-public:
-    color albedo;
-    double fuzz;
+private:
+    Vector3 albedo;
+    float fuzz;
 };
 
 
-class diffuse_light : public material {
+/*class diffuse_light : public material {
 public:
     diffuse_light(std::shared_ptr<texture> a) : emit(a) {}
     diffuse_light(color c) : emit(std::make_shared<solid_color>(c)) {}
@@ -76,7 +83,7 @@ public:
 
 public:
     std::shared_ptr<texture> emit;
-};
+};*/
 
 
 #endif // !MATERIAL_H

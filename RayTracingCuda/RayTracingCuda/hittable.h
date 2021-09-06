@@ -9,12 +9,9 @@ struct hit_record
 {
 	point3 p;
 	Vector3 normal;
-	//std::shared_ptr<material> mat_ptr;
+	material* mat_ptr;
 	float t;
-	bool front_face;
 
-	double u;
-	double v;
 
 	/*inline void set_face_normal(const ray& r, const Vector3& outward_normal) {
 		front_face = dot(r.direction(), outward_normal) < 0;
