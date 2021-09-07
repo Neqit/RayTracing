@@ -41,20 +41,23 @@ __device__ Vector3 ray_color(const ray& r, hittable** world, curandState* local_
         if ((*world)->hit(cur_ray, 0.001f, FLT_MAX, rec)) {
             ray scattered;
             Vector3 attenuation;
+            Vector3 emitted = rec.mat_ptr->emitted(); //NEW
 
             if (rec.mat_ptr->scatter(cur_ray, rec, attenuation, scattered, local_rand_state)) {
-                cur_attenuation = cur_attenuation * attenuation;
+                cur_attenuation =  emitted + cur_attenuation * attenuation; //NEW
                 cur_ray = scattered;
             }
             else {
-                return Vector3(0.0, 0.0, 0.0);
+                return emitted * cur_attenuation;//Vector3(0.0, 0.0, 0.0); //return emmited //NEW
             }
         }
         else {
-            Vector3 unit_direction = normalize(cur_ray.direction());
+            //global illumination
+            /*Vector3 unit_direction = normalize(cur_ray.direction());
             float t = 0.5f * (unit_direction.y() + 1.0f);
             Vector3 c = (1.0f - t) * Vector3(1.0, 1.0, 1.0) + t * Vector3(0.5, 0.7, 1.0);
-            return cur_attenuation * c;
+            return cur_attenuation * c;*/
+            return Vector3(0.0, 0.0, 0.0);
         }
     }
 
@@ -98,8 +101,10 @@ __global__ void render_init(int max_x, int max_y, curandState* rand_state) {
 
 __global__ void create_world(hittable** d_list, hittable** d_world, camera** d_camera, int nx, int ny) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
-        d_list[0] = new sphere(Vector3(0, 0, -1), 0.5,
-            new lambertian(Vector3(0.1, 0.2, 0.5)));
+        d_list[0] = new sphere(Vector3(0, 5, -1), 0.5,
+            new diffuse_light(Vector3(10, 10, 10)));
+        /*d_list[0] = new sphere(Vector3(0, 1, -1), 0.5,
+            new lambertian(Vector3(0.1, 0.4, 0.8)));*/
         d_list[1] = new sphere(Vector3(0, -100.5, -1), 100,
             new lambertian(Vector3(0.8, 0.8, 0.0)));
         d_list[2] = new sphere(Vector3(1, 0, -1), 0.5,
@@ -108,11 +113,11 @@ __global__ void create_world(hittable** d_list, hittable** d_world, camera** d_c
         Vector3 lookfrom(3, 3, 2);
         Vector3 lookat(0, 0, -1);
         float dist_to_focus = (lookfrom - lookat).length();
-        float aperture = 2.0;
+        float aperture = 0.01;
         *d_camera = new camera(lookfrom,
             lookat,
             Vector3(0, 1, 0),
-            20.0,
+            60.0,
             float(nx) / float(ny),
             aperture,
             dist_to_focus);
@@ -132,9 +137,9 @@ __global__ void free_world(hittable** d_list, hittable** d_world, camera** d_cam
 int main() {
     int nx = 1200;
     int ny = 600;
-    int ns = 200; //samples
-    int tx = 4; //threadX
-    int ty = 4; //threadY
+    int ns = 5000; //samples
+    int tx = 8; //threadX
+    int ty = 8; //threadY
 
     std::cerr << "Rendering a " << nx << "x" << ny << " image ";
     std::cerr << "in " << tx << "x" << ty << " blocks.\n";

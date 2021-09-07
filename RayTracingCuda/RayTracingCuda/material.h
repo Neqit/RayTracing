@@ -3,7 +3,7 @@
 
 #include "ray.h"
 #include "Vector3.h"
-#include "texture.h"
+//#include "texture.h"
 #include <curand_kernel.h>
 #include "hittable.h"
 
@@ -28,9 +28,9 @@ class material
 {
 public:
 
-    /*virtual color emitted(double u, double v, const point3& p) const {
+    __device__ virtual color emitted() const {
         return color(0, 0, 0);
-    }*/
+    }
 
     __device__ virtual bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered, curandState* local_rand_state) const = 0;
 
@@ -67,23 +67,22 @@ private:
 };
 
 
-/*class diffuse_light : public material {
+class diffuse_light : public material {
 public:
-    diffuse_light(std::shared_ptr<texture> a) : emit(a) {}
-    diffuse_light(color c) : emit(std::make_shared<solid_color>(c)) {}
+    __device__ diffuse_light(color c) : emit(c) {}
     
-    virtual bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered) const override {
+    __device__ virtual bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered, curandState* local_rand_state) const override {
         return false;
     }
 
-    virtual color emitted(double u, double v, const point3& p) const override {
-        return emit->value(u, v, p);
+    __device__ virtual color emitted() const override {
+        return emit;
     }
 
 
 public:
-    std::shared_ptr<texture> emit;
-};*/
+    color emit;
+};
 
 
 #endif // !MATERIAL_H
