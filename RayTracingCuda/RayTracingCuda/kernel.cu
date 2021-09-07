@@ -11,6 +11,7 @@
 #include "sphere.h"
 #include "camera.h"
 #include "material.h"
+#include "rectangle.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_MSC_SECURE_CRT
@@ -36,7 +37,7 @@ __device__ Vector3 ray_color(const ray& r, hittable** world, curandState* local_
     ray cur_ray = r;
     Vector3 cur_attenuation = Vector3(1.0, 1.0, 1.0);
     //max depth = 50
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < 150; i++) {
         hit_record rec;
         if ((*world)->hit(cur_ray, 0.001f, FLT_MAX, rec)) {
             ray scattered;
@@ -107,8 +108,7 @@ __global__ void create_world(hittable** d_list, hittable** d_world, camera** d_c
             new lambertian(Vector3(0.1, 0.4, 0.8)));*/
         d_list[1] = new sphere(Vector3(0, -100.5, -1), 100,
             new lambertian(Vector3(0.8, 0.8, 0.0)));
-        d_list[2] = new sphere(Vector3(1, 0, -1), 0.5,
-            new metal(Vector3(0.8, 0.6, 0.2), 0.0));
+        d_list[2] = new xy_rect(3, 5, 1, 3, -2, new diffuse_light(Vector3(1, 1, 1)));
         *d_world = new hittable_list(d_list, 3);
         Vector3 lookfrom(3, 3, 2);
         Vector3 lookat(0, 0, -1);
@@ -135,9 +135,9 @@ __global__ void free_world(hittable** d_list, hittable** d_world, camera** d_cam
 }
 
 int main() {
-    int nx = 1200;
-    int ny = 600;
-    int ns = 5000; //samples
+    int nx = 600;
+    int ny = 300;
+    int ns = 1000; //samples
     int tx = 8; //threadX
     int ty = 8; //threadY
 
@@ -203,7 +203,7 @@ int main() {
         }
     }
 
-    stbi_write_png("cuda_dof.png", nx, ny, 3, pixels, nx * 3);
+    //stbi_write_png("cuda_rect.png", nx, ny, 3, pixels, nx * 3);
     delete[] pixels;
 
     checkCudaErrors(cudaDeviceSynchronize());

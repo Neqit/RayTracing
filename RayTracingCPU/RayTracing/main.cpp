@@ -60,11 +60,11 @@ int main() {
 
     // Image
     const auto aspect_ratio = 16.0 / 9.0;
-    const int image_width = 720;
+    const int image_width = 100;
     const int image_height = static_cast<int>(image_width / aspect_ratio);
     const int chanel_num = 3;
-    const int samples_per_pixel = 300;
-    const int max_depth = 100;
+    const int samples_per_pixel = 50;
+    const int max_depth = 50;
 
     //Camera
     point3 lookfrom(26, 3, 6);
@@ -94,14 +94,14 @@ int main() {
 
 
         auto material_ground = std::make_shared<lambertian>(color(0.8, 0.8, 0.0));
-        auto material_center = std::make_shared<lambertian>(color(0.7, 0.3, 0.3));
+        auto material_center = std::make_shared<metal>(color(0.7, 0.3, 0.3),0.5);
         world.add(std::make_shared<sphere>(point3(0, -1000, 0), 1000, material_ground));
         world.add(std::make_shared<sphere>(point3(0, 2, 0), 2, material_center));
 
         auto difflight = std::make_shared<diffuse_light>(color(4, 4, 4));
         world.add(std::make_shared<xy_rect>(3, 5, 1, 3, -2, difflight));
 
-        world.add(std::make_shared<sphere>(point3(0, 5, 0), 2, difflight));
+        world.add(std::make_shared<sphere>(point3(0, 10, 0), 2, difflight));
 
 
     
@@ -131,7 +131,7 @@ int main() {
         }
     }
 
-    stbi_write_png("light.png", image_width, image_height, chanel_num, pixels, image_width * chanel_num);
+    stbi_write_png("light_metal.png", image_width, image_height, chanel_num, pixels, image_width * chanel_num);
     delete[] pixels;
 
 }

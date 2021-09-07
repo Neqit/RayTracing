@@ -23,7 +23,7 @@ class Vector3
 public:
 	Vector3() : e{ 0,0,0 } {}
 	Vector3(double e0, double e1, double e2) : e{ e0,e1,e2 } {}
-	~Vector3();
+	//~Vector3();
 
 	double x() const { return e[0]; }
 	double y() const { return e[1]; }
@@ -83,10 +83,10 @@ public:
 using point3 = Vector3;   // 3D point
 using color = Vector3;    // RGB color
 
-Vector3::~Vector3()
+/*Vector3::~Vector3()
 {
 	//delete[] e;
-}
+}*/
 
 
 inline std::ostream& operator<<(std::ostream& out, const Vector3& v) {
