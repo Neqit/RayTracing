@@ -37,7 +37,7 @@ __device__ Vector3 ray_color(const ray& r, hittable** world, curandState* local_
     ray cur_ray = r;
     Vector3 cur_attenuation = Vector3(1.0, 1.0, 1.0);
     //max depth = 50
-    for (int i = 0; i < 150; i++) {
+    for (int i = 0; i < 50; i++) {
         hit_record rec;
         if ((*world)->hit(cur_ray, 0.001f, FLT_MAX, rec)) {
             ray scattered;
@@ -102,22 +102,33 @@ __global__ void render_init(int max_x, int max_y, curandState* rand_state) {
 
 __global__ void create_world(hittable** d_list, hittable** d_world, camera** d_camera, int nx, int ny) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
-        d_list[0] = new sphere(Vector3(0, 5, -1), 0.5,
-            new diffuse_light(Vector3(10, 10, 10)));
-        /*d_list[0] = new sphere(Vector3(0, 1, -1), 0.5,
-            new lambertian(Vector3(0.1, 0.4, 0.8)));*/
-        d_list[1] = new sphere(Vector3(0, -100.5, -1), 100,
-            new lambertian(Vector3(0.8, 0.8, 0.0)));
-        d_list[2] = new xy_rect(3, 5, 1, 3, -2, new diffuse_light(Vector3(1, 1, 1)));
-        *d_world = new hittable_list(d_list, 3);
-        Vector3 lookfrom(3, 3, 2);
+        d_list[0] = new sphere(Vector3(0, -100, -1), 100, new lambertian(Vector3(0.8, 0.8, 0.0))); //ground
+        d_list[1] = new sphere(Vector3(0, 0.5, 0), 0.5, new metal(Vector3(0.7, 0.6, 0.5), 0.1));
+        d_list[2] = new sphere(Vector3(-1, 0.5, 0), 0.5, new lambertian(Vector3(0.3, 0.0, 0.9)));
+        d_list[3] = new sphere(Vector3(1, 0.5, 0), 0.5, new metal(Vector3(0.7, 0.6, 0.5), 0.95));
+        d_list[4] = new sphere(Vector3(-2, 0.5, 0), 0.5, new metal(Vector3(0.7, 0.6, 0.5), 0.6));
+        d_list[5] = new sphere(Vector3(2, 0.5, 0), 0.5, new metal(Vector3(0.7, 0.6, 0.5), 0.3));
+        d_list[6] = new sphere(Vector3(3, 0.5, 0), 0.5, new metal(Vector3(0.7, 0.6, 0.5), 0.02));
+        d_list[7] = new sphere(Vector3(0, 1.5, -2), 1.5, new metal(Vector3(0.7, 0.6, 0.5), 0.1));
+        d_list[8] = new sphere(Vector3(0.15, 0.2, 1), 0.2, new lambertian(Vector3(0.7, 0.0, 0.99)));
+        d_list[9] = new sphere(Vector3(0.8, 0.2, 0.9), 0.2, new lambertian(Vector3(0.6, 0.3, 0.9)));
+        d_list[10] = new sphere(Vector3(2.5, 0.2, 1), 0.2, new lambertian(Vector3(0.9, 0.99, 0.1)));
+        //d_list[11] = new sphere(Vector3(0.5, 0.2, 2), 0.2, new lambertian(Vector3(0.99, 0.0, 0.2)));
+        d_list[11] = new sphere(Vector3(0.5, 0.2, 2), 0.2, new diffuse_light(Vector3(1, 0.0, 0.0)));
+        d_list[12] = new sphere(Vector3(-0.2, 0.2, 0.77), 0.2, new lambertian(Vector3(0.7, 0.99, 0.0)));
+
+
+        d_list[13] = new xy_rect(-10, 5, -3, 3, -3, new diffuse_light(Vector3(1, 1, 1)));
+
+        *d_world = new hittable_list(d_list, 14);
+        Vector3 lookfrom(5, 2, 5);
         Vector3 lookat(0, 0, -1);
         float dist_to_focus = (lookfrom - lookat).length();
-        float aperture = 0.01;
+        float aperture = 0.1;
         *d_camera = new camera(lookfrom,
             lookat,
             Vector3(0, 1, 0),
-            60.0,
+            30.0,
             float(nx) / float(ny),
             aperture,
             dist_to_focus);
@@ -126,17 +137,21 @@ __global__ void create_world(hittable** d_list, hittable** d_world, camera** d_c
 
 
 __global__ void free_world(hittable** d_list, hittable** d_world, camera** d_camera) {
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 13; i++) {
         delete ((sphere*)d_list[i])->mat_ptr;
         delete d_list[i];
     }
+
+    delete ((xy_rect*)d_list[13])->mp; 
+    delete d_list[13];
+
     delete* d_world;
     delete* d_camera;
 }
 
 int main() {
-    int nx = 600;
-    int ny = 300;
+    int nx = 1200;
+    int ny = 600;
     int ns = 1000; //samples
     int tx = 8; //threadX
     int ty = 8; //threadY
@@ -149,7 +164,7 @@ int main() {
 
     // allocate FB
     Vector3* fb;
-    checkCudaErrors(cudaMallocManaged((void**)&fb, fb_size));
+    checkCudaErrors(cudaMallocManaged((void**)&fb, fb_size)); //memory allocated for all vectors
 
     // allocate random state
     curandState* d_rand_state;
@@ -158,12 +173,12 @@ int main() {
 
     // make our world of hitables
     hittable** d_list;
-    checkCudaErrors(cudaMalloc((void**)&d_list, 3 * sizeof(hittable*)));
+    checkCudaErrors(cudaMalloc((void**)&d_list, 14 * sizeof(hittable*)));
     hittable** d_world;
     checkCudaErrors(cudaMalloc((void**)&d_world, sizeof(hittable*)));
     camera** d_camera;
     checkCudaErrors(cudaMalloc((void**)&d_camera, sizeof(camera*)));
-    create_world << <1, 1 >> > (d_list, d_world, d_camera, nx, ny);
+    create_world<<<1, 1 >>>(d_list, d_world, d_camera, nx, ny);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
 
@@ -172,10 +187,10 @@ int main() {
     // Render our buffer
     dim3 blocks(nx / tx + 1, ny / ty + 1);
     dim3 threads(tx, ty);
-    render_init << <blocks, threads >> > (nx, ny, d_rand_state);
+    render_init<<<blocks, threads>>> (nx, ny, d_rand_state);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
-    render << <blocks, threads >> > (fb, nx, ny, ns, d_camera, d_world, d_rand_state);
+    render<<<blocks, threads>>>(fb, nx, ny, ns, d_camera, d_world, d_rand_state);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
     stop = clock();
@@ -203,7 +218,7 @@ int main() {
         }
     }
 
-    //stbi_write_png("cuda_rect.png", nx, ny, 3, pixels, nx * 3);
+    stbi_write_png("cuda_final_light_red.png", nx, ny, 3, pixels, nx * 3);
     delete[] pixels;
 
     checkCudaErrors(cudaDeviceSynchronize());

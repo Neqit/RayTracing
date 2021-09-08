@@ -3,7 +3,6 @@
 
 #include "ray.h"
 #include "Vector3.h"
-//#include "texture.h"
 #include <curand_kernel.h>
 #include "hittable.h"
 
