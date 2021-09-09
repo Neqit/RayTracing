@@ -52,14 +52,36 @@ color ray_color(const ray& r, const color& background, const hittable& world, in
     return emitted + attenuation * ray_color(scattered, background, world, depth - 1);
 }
 
+void render(int image_height, int image_width, int samples_per_pixel, camera& cam, color background, const hittable& world, int max_depth, uint8_t* pixels, int& index) {
+    for (int j = image_height - 1; j >= 0; --j) {
+        std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
+        for (int i = 0; i < image_width; ++i) {
+
+            color pixel_color(0, 0, 0);
+            for (int s = 0; s < samples_per_pixel; ++s) {
+                auto u = (i + random_double()) / (image_width - 1);
+                auto v = (j + random_double()) / (image_height - 1);
+                ray r = cam.get_ray(u, v);
+                pixel_color += ray_color(r, background, world, max_depth);
+            }
+
+            color pixels_color = write_color(std::cout, pixel_color, samples_per_pixel);
+
+            pixels[index++] = static_cast<int>(pixels_color.x());
+            pixels[index++] = static_cast<int>(pixels_color.y());
+            pixels[index++] = static_cast<int>(pixels_color.z());
+        }
+    }
+}
+
 int main() {
 
     // Image
     const auto aspect_ratio = 16.0 / 9.0;
-    const int image_width = 1200;
-    const int image_height = 600;//static_cast<int>(image_width / aspect_ratio);
+    const int image_width = 200;
+    const int image_height = 100;//static_cast<int>(image_width / aspect_ratio);
     const int chanel_num = 3;
-    const int samples_per_pixel = 100;
+    const int samples_per_pixel = 20;
     const int max_depth = 50;
 
     //Camera
@@ -123,25 +145,7 @@ int main() {
 
     int index = 0;
 
-    for (int j = image_height - 1; j >= 0; --j) {
-        std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
-        for (int i = 0; i < image_width; ++i) {
-
-            color pixel_color(0, 0, 0);
-            for (int s = 0; s < samples_per_pixel; ++s) {
-                auto u = (i + random_double()) / (image_width - 1);
-                auto v = (j + random_double()) / (image_height - 1);
-                ray r = cam.get_ray(u, v);
-                pixel_color += ray_color(r, background, world, max_depth);
-            }
-
-            color pixels_color = write_color(std::cout, pixel_color, samples_per_pixel);
-
-            pixels[index++] = static_cast<int>(pixels_color.x());
-            pixels[index++] = static_cast<int>(pixels_color.y());
-            pixels[index++] = static_cast<int>(pixels_color.z());
-        }
-    }
+    render(image_height, image_width, samples_per_pixel, cam, background, world, max_depth, pixels, index);
 
     stbi_write_png("cpu_final.png", image_width, image_height, chanel_num, pixels, image_width * chanel_num);
     delete[] pixels;
